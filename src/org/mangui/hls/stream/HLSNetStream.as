@@ -2,6 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package org.mangui.hls.stream {
+    import flash.events.Event;
+    import flash.events.NetStatusEvent;
+    import flash.events.TimerEvent;
+    import flash.net.NetConnection;
+    import flash.net.NetStream;
+    import flash.net.NetStreamAppendBytesAction;
+    import flash.net.NetStreamPlayOptions;
+    import flash.utils.ByteArray;
+    import flash.utils.Timer;
+    
+    import by.blooddy.crypto.Base64;
+    
+    import org.mangui.hls.HLS;
+    import org.mangui.hls.HLSSettings;
     import org.mangui.hls.constant.HLSPlayStates;
     import org.mangui.hls.constant.HLSSeekStates;
     import org.mangui.hls.controller.BufferThresholdController;
@@ -10,21 +24,7 @@ package org.mangui.hls.stream {
     import org.mangui.hls.event.HLSEvent;
     import org.mangui.hls.event.HLSPlayMetrics;
     import org.mangui.hls.flv.FLVTag;
-    import org.mangui.hls.HLS;
-    import org.mangui.hls.HLSSettings;
-
-    import by.blooddy.crypto.Base64;
-
-    import flash.events.Event;
-    import flash.events.NetStatusEvent;
-    import flash.events.TimerEvent;
-    import flash.net.NetConnection;
-    import flash.net.NetStream;
-    import flash.net.NetStreamAppendBytesAction;
-    import flash.net.NetStreamInfo;
-    import flash.net.NetStreamPlayOptions;
-    import flash.utils.ByteArray;
-    import flash.utils.Timer;
+    import org.mangui.hls.model.Subtitle;
 
     CONFIG::LOGGING {
         import org.mangui.hls.utils.Log;
@@ -32,13 +32,13 @@ package org.mangui.hls.stream {
     /** Class that overrides standard flash.net.NetStream class, keeps the buffer filled, handles seek and play state
      *
      * play state transition :
-     * 				FROM								TO								condition
-     *  HLSPlayStates.IDLE              	HLSPlayStates.PLAYING_BUFFERING     idle => play()/play2() called
+     *              FROM                                TO                              condition
+     *  HLSPlayStates.IDLE                  HLSPlayStates.PLAYING_BUFFERING     idle => play()/play2() called
      *  HLSPlayStates.IDLE                  HLSPlayStates.PAUSED_BUFFERING      idle => seek() called
-     *  HLSPlayStates.PLAYING_BUFFERING  	HLSPlayStates.PLAYING  				buflen > minBufferLength
-     *  HLSPlayStates.PAUSED_BUFFERING  	HLSPlayStates.PAUSED  				buflen > minBufferLength
-     *  HLSPlayStates.PLAYING  				HLSPlayStates.PLAYING_BUFFERING  	buflen < lowBufferLength
-     *  HLSPlayStates.PAUSED  				HLSPlayStates.PAUSED_BUFFERING  	buflen < lowBufferLength
+     *  HLSPlayStates.PLAYING_BUFFERING     HLSPlayStates.PLAYING               buflen > minBufferLength
+     *  HLSPlayStates.PAUSED_BUFFERING      HLSPlayStates.PAUSED                buflen > minBufferLength
+     *  HLSPlayStates.PLAYING               HLSPlayStates.PLAYING_BUFFERING     buflen < lowBufferLength
+     *  HLSPlayStates.PAUSED                HLSPlayStates.PAUSED_BUFFERING      buflen < lowBufferLength
      *
      * seek state transition :
      *
@@ -89,6 +89,8 @@ package org.mangui.hls.stream {
             _client.registerCallback("onHLSFragmentChange", onHLSFragmentChange);
             _client.registerCallback("onHLSFragmentSkipped", onHLSFragmentSkipped);
             _client.registerCallback("onID3Data", onID3Data);
+            _client.registerCallback("onMetaData", onMetaData);
+            _client.registerCallback("onTextData", onTextData);
             super.client = _client;
         }
 
@@ -122,6 +124,19 @@ package org.mangui.hls.stream {
             }
             _skippedDuration+=duration;
             _hls.dispatchEvent(new HLSEvent(HLSEvent.FRAGMENT_SKIPPED, duration));
+        }
+
+        
+        protected function onMetaData(data:Object) : void {
+            if (_hls.hasEventListener(HLSEvent.SUBTITLES_TRACKS_LIST_CHANGE) && data && data.trackinfo) {
+                _hls.dispatchEvent(new HLSEvent(HLSEvent.SUBTITLES_TRACKS_LIST_CHANGE));
+            }
+        }
+        
+        protected function onTextData(data:Object) : void {
+            if (_hls.hasEventListener(HLSEvent.SUBTITLES_CHANGE) && data.trackid == _hls.subtitlesTrack) {
+                _hls.dispatchEvent(new HLSEvent(HLSEvent.SUBTITLES_CHANGE, Subtitle.toSubtitle(data)));
+            }
         }
 
         // function is called by SCRIPT in FLV
@@ -247,7 +262,7 @@ package org.mangui.hls.stream {
                 try {
                     super['useHardwareDecoder'] = HLSSettings.useHardwareVideoDecoder;
                 } catch(e : Error) {
-	               // Ignore errors, we're running in FP < 11.1
+                   // Ignore errors, we're running in FP < 11.1
                 }
 
                 super.play(null);
@@ -478,6 +493,14 @@ package org.mangui.hls.stream {
             close();
             _timer.removeEventListener(TimerEvent.TIMER, _checkBuffer);
             _bufferThresholdController.dispose();
+        }
+        
+        /**
+         * Immediately dispatches an event via the client object to simulate
+         * an FLVTag event from the stream 
+         */
+        public function dispatchClientEvent(type:String, ...args):void {
+            _client[type].apply(_client, args);
         }
     }
 }

@@ -15,13 +15,13 @@
         private var _hls : HLS;
         private var _hasClosedCapations : String;
 
-        public function HLSClosedCaptionsTrait(hls : HLS, closed_captions : String = HLSClosedCaptionsState.UNKNOWN) {
+        public function HLSClosedCaptionsTrait(hls : HLS, closed_captions : String = "unknown") {
             CONFIG::LOGGING {
             Log.debug("HLSClosedCaptionsTrait()");
             }
             super(HLSMediaTraitType.CLOSED_CAPTIONS);
 
-			_hasClosedCapations = closed_captions;
+            _hasClosedCapations = closed_captions;
             _hls = hls;
             _hls.addEventListener(HLSEvent.LEVEL_SWITCH, _levelSwitchHandler);
         }
@@ -35,24 +35,24 @@
         }
 
         public function hasClosedCaptions() : String {
-        	return _hasClosedCapations;
+            return _hasClosedCapations;
         }
 
         /** Update playback position/duration **/
         private function _levelSwitchHandler(event : HLSEvent) : void {
-        	var cc : String = (_hls.levels[event.level] as Level).closed_captions;
+            var cc : String = (_hls.levels[event.level] as Level).closed_captions;
 
-        	if (cc && cc === "NONE")
-        	{
-        		// manifest told us to ignore any 608/708 binary
-        		_hasClosedCapations = HLSClosedCaptionsState.NO;
-        	}
-    		else
-    		{
-    			_hasClosedCapations = HLSClosedCaptionsState.UNKNOWN;
-    		}
+            if (cc && cc === "NONE")
+            {
+                // manifest told us to ignore any 608/708 binary
+                _hasClosedCapations = HLSClosedCaptionsState.NO;
+            }
+            else
+            {
+                _hasClosedCapations = HLSClosedCaptionsState.UNKNOWN;
+            }
 
-    		// YES only happens for WebVTT, which isn't supported.
+            // YES only happens for WebVTT, which isn't supported.
         }
     }
 }
