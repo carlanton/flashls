@@ -314,7 +314,7 @@ package org.mangui.hls.loader {
                         _metrics.parsing_end_time = getTimer();
                         _loadLevel = -1;
                         _hls.dispatchEvent(new HLSEvent(HLSEvent.MANIFEST_PARSED, _levels));
-                        if (string.indexOf(Manifest.ALTERNATE_AUDIO) > 0) {
+                        if (Manifest.ALTERNATE_AUDIO.test(string)) {
                             CONFIG::LOGGING {
                                 Log.debug("alternate audio level found");
                             }
@@ -326,7 +326,7 @@ package org.mangui.hls.loader {
                                 }
                             }
                         }
-                        if (string.indexOf(Manifest.SUBTITLES) > 0) {
+                        if (Manifest.SUBTITLES.test(string)) {
                             CONFIG::LOGGING {
                                 Log.debug("subtitles level found");
                             }

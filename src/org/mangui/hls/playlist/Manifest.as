@@ -38,9 +38,9 @@ package org.mangui.hls.playlist {
         /** Tag that delimits the end of a playlist. **/
         public static const ENDLIST : String = '#EXT-X-ENDLIST';
         /** Tag that provides info related to alternative audio tracks */
-        public static const ALTERNATE_AUDIO : String = '#EXT-X-MEDIA:TYPE=AUDIO,';
+        public static const ALTERNATE_AUDIO : RegExp = /#EXT-X-MEDIA:[^\n]*TYPE=AUDIO/;
         /** Tag that provides info related to alternative rendition */
-        public static const SUBTITLES : String = '#EXT-X-MEDIA:TYPE=SUBTITLES,';
+        public static const SUBTITLES : RegExp = /#EXT-X-MEDIA:[^\n]*TYPE=SUBTITLES/;
         /** Tag that provides info related to alternative rendition */
         private static const MEDIA : String = '#EXT-X-MEDIA:';
         /** Tag that provides the sequence number. **/
@@ -352,7 +352,7 @@ package org.mangui.hls.playlist {
                         } else if (param.indexOf('AUDIO') > -1) {
                             level.audio_stream_id = (param.split('=')[1] as String).replace(replacedoublequote, "").replace(trimwhitespace, "");
                         } else if (param.indexOf('SUBTITLES') > -1) {
-                            level.subtitles_stream_id = StringUtil.trim(param.split('=')[1] as String).replace(replacedoublequote, "");
+                            level.subtitles_stream_id = (param.split('=')[1] as String).replace(replacedoublequote, "").replace(trimwhitespace, "");
                         } else if (param.indexOf('CLOSED-CAPTIONS') > -1) {
                             level.closed_captions = (param.split('=')[1] as String).replace(replacedoublequote, "").replace(trimwhitespace, "");
                         } else if (param.indexOf('NAME') > -1) {
